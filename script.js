@@ -37,7 +37,7 @@ function sendMessage() {
     directionInputs.forEach(input => input.value = '');
 
     // Call local server
-    fetch('/chat', {
+    fetch('/api/chat', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
