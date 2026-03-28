@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Simple con ChatGPT</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Optimizador de Rutas</h1>
+        <p>Ingresar las direcciones para poder calcular la mejor ruta (10 por defecto, agregar más si es necesario).</p>
+        <div class="chat">
+            <div id="messages"></div>
+            <div class="input-area">
+                <div id="directionsContainer">
+                    <input type="text" class="directionInput" placeholder="Dirección 1">
+                    <input type="text" class="directionInput" placeholder="Dirección 2">
+                    <input type="text" class="directionInput" placeholder="Dirección 3">
+                    <input type="text" class="directionInput" placeholder="Dirección 4">
+                    <input type="text" class="directionInput" placeholder="Dirección 5">
+                    <input type="text" class="directionInput" placeholder="Dirección 6">
+                    <input type="text" class="directionInput" placeholder="Dirección 7">
+                    <input type="text" class="directionInput" placeholder="Dirección 8">
+                    <input type="text" class="directionInput" placeholder="Dirección 9">
+                    <input type="text" class="directionInput" placeholder="Dirección 10">
+                </div>
+                <div id="buttonRow">
+                    <button id="addDirectionBtn">Agregar Dirección</button>
+                    <select id="startDirection" aria-label="Dirección de llegada">
+                    <option value="auto">Partir optimizando</option>
+                    <option value="norte">Vengo desde el norte</option>
+                    <option value="sur">Vengo desde el sur</option>
+                    <option value="este">Vengo desde el este</option>
+                    <option value="oeste">Vengo desde el oeste</option>
+                </select>
+                    <button id="sendBtn">Calcular Ruta</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html></content>
+<parameter name="filePath">c:/Users/Gustavo/Documents/src/maps-poc/index.html

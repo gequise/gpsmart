@@ -1,0 +1,33 @@
+# Node.js
+dist/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment files
+.env
+.env.*
+
+# Editor temp files
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Logs
+logs
+*.log
+
+# OS files
+desktop.ini
+
+# Optional - built assets
+build/
+coverage/
