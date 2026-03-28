@@ -24,12 +24,3 @@ Una página web simple para optimizar rutas logísticas en Buenos Aires usando m
 
 - Una API Key válida de Groq. Obtén una en [https://console.groq.com/keys](https://console.groq.com/keys).
 - Node.js instalado.
-
-## Notas de Seguridad
-
-La API Key se almacena en el archivo `.env` y no se expone al cliente. Asegúrate de no compartir este archivo.
-
-## Solución de Problemas
-
-- Si no funciona, verifica que tu API Key de Groq sea correcta y que tengas créditos en tu cuenta.
-- Asegúrate de que el servidor esté corriendo.
