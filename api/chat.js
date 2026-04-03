@@ -162,8 +162,7 @@ function buildGoogleMapsUrl(orderedAddresses) {
         return `https://www.google.com/maps/search/${encodeURIComponent(orderedAddresses[0])}`;
     }
     
-    // Usar esquema comgooglemaps:// que abre directamente en app de Google Maps (iOS y Android)
-    // Fallback a HTTPS si la app no está instalada
+    // Generar ambas URLs: comgooglemaps:// para mobile app + web como fallback
     const origin = encodeURIComponent(orderedAddresses[0]);
     const destination = encodeURIComponent(orderedAddresses[orderedAddresses.length - 1]);
     
@@ -175,8 +174,13 @@ function buildGoogleMapsUrl(orderedAddresses) {
         waypointsParam = `&waypoints=${waypoints}`;
     }
     
-    // comgooglemaps:// abre en la app nativa con el botón "Start" visible
-    return `comgooglemaps://dir/?origin=${origin}&destination=${destination}${waypointsParam}`;
+    // URL con esquema comgooglemaps:// (móvil) + fallback web
+    // El cliente detectara ambas
+    const mapsAppUrl = `comgooglemaps://dir/?origin=${origin}&destination=${destination}${waypointsParam}`;
+    const webUrl = `https://www.google.com/maps/dir/${orderedAddresses.map(a => encodeURIComponent(a)).join('/')}`;
+    
+    // Devolver primero comgooglemaps y luego web como fallback
+    return `${mapsAppUrl} (${webUrl})`;
 }
 
 function buildOSMDirectionsUrl(orderedAddresses) {

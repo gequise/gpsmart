@@ -162,23 +162,25 @@ function buildGoogleMapsUrl(orderedAddresses) {
         return `https://www.google.com/maps/search/${encodeURIComponent(orderedAddresses[0])}`;
     }
     
-    // Para mobile con esquema comgooglemaps que abre en app nativa
-    // Detectar si es mobile (esto se ejecuta en el servidor, así que crear URL universal)
-    // Format: comgooglemaps://dir/?origin=&destination=&waypoints=
-    const origin = encodeURIComponent(orderedAddresses[0].replace(/,.*$/g, '')); // Tomar solo calle
-    const destination = encodeURIComponent(orderedAddresses[orderedAddresses.length - 1].replace(/,.*$/g, ''));
+    // Generar ambas URLs: comgooglemaps:// para mobile app + web como fallback
+    const origin = encodeURIComponent(orderedAddresses[0]);
+    const destination = encodeURIComponent(orderedAddresses[orderedAddresses.length - 1]);
     
     let waypointsParam = '';
     if (orderedAddresses.length > 2) {
         const waypoints = orderedAddresses.slice(1, -1)
-            .map(a => encodeURIComponent(a.replace(/,.*$/g, '')))
+            .map(a => encodeURIComponent(a))
             .join('|');
         waypointsParam = `&waypoints=${waypoints}`;
     }
     
-    // Usar comgooglemaps:// que funciona en iOS y Android
-    // Si no está instalada, fallback a HTTPS
-    return `comgooglemaps://dir/?origin=${origin}&destination=${destination}${waypointsParam}`;
+    // URL con esquema comgooglemaps:// (móvil) + fallback web
+    // El cliente detectara ambas
+    const mapsAppUrl = `comgooglemaps://dir/?origin=${origin}&destination=${destination}${waypointsParam}`;
+    const webUrl = `https://www.google.com/maps/dir/${orderedAddresses.map(a => encodeURIComponent(a)).join('/')}`;
+    
+    // Devolver primero comgooglemaps y luego web como fallback
+    return `${mapsAppUrl} (${webUrl})`;
 }
 
 function buildOSMDirectionsUrl(orderedAddresses) {
