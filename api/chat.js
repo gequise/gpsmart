@@ -162,10 +162,21 @@ function buildGoogleMapsUrl(orderedAddresses) {
         return `https://www.google.com/maps/search/${encodeURIComponent(orderedAddresses[0])}`;
     }
     
-    // Usar formato que funciona mejor en mobile
-    // Format: https://www.google.com/maps/dir/origin/waypoint1/waypoint2/destination
-    const encodedAddresses = orderedAddresses.map(a => encodeURIComponent(a)).join('/');
-    return `https://www.google.com/maps/dir/${encodedAddresses}`;
+    // Usar esquema comgooglemaps:// que abre directamente en app de Google Maps (iOS y Android)
+    // Fallback a HTTPS si la app no está instalada
+    const origin = encodeURIComponent(orderedAddresses[0]);
+    const destination = encodeURIComponent(orderedAddresses[orderedAddresses.length - 1]);
+    
+    let waypointsParam = '';
+    if (orderedAddresses.length > 2) {
+        const waypoints = orderedAddresses.slice(1, -1)
+            .map(a => encodeURIComponent(a))
+            .join('|');
+        waypointsParam = `&waypoints=${waypoints}`;
+    }
+    
+    // comgooglemaps:// abre en la app nativa con el botón "Start" visible
+    return `comgooglemaps://dir/?origin=${origin}&destination=${destination}${waypointsParam}`;
 }
 
 function buildOSMDirectionsUrl(orderedAddresses) {

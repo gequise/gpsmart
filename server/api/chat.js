@@ -162,10 +162,23 @@ function buildGoogleMapsUrl(orderedAddresses) {
         return `https://www.google.com/maps/search/${encodeURIComponent(orderedAddresses[0])}`;
     }
     
-    // Usar formato que funciona mejor en mobile
-    // Format: https://www.google.com/maps/dir/origin/waypoint1/waypoint2/destination
-    const encodedAddresses = orderedAddresses.map(a => encodeURIComponent(a)).join('/');
-    return `https://www.google.com/maps/dir/${encodedAddresses}`;
+    // Para mobile con esquema comgooglemaps que abre en app nativa
+    // Detectar si es mobile (esto se ejecuta en el servidor, así que crear URL universal)
+    // Format: comgooglemaps://dir/?origin=&destination=&waypoints=
+    const origin = encodeURIComponent(orderedAddresses[0].replace(/,.*$/g, '')); // Tomar solo calle
+    const destination = encodeURIComponent(orderedAddresses[orderedAddresses.length - 1].replace(/,.*$/g, ''));
+    
+    let waypointsParam = '';
+    if (orderedAddresses.length > 2) {
+        const waypoints = orderedAddresses.slice(1, -1)
+            .map(a => encodeURIComponent(a.replace(/,.*$/g, '')))
+            .join('|');
+        waypointsParam = `&waypoints=${waypoints}`;
+    }
+    
+    // Usar comgooglemaps:// que funciona en iOS y Android
+    // Si no está instalada, fallback a HTTPS
+    return `comgooglemaps://dir/?origin=${origin}&destination=${destination}${waypointsParam}`;
 }
 
 function buildOSMDirectionsUrl(orderedAddresses) {
