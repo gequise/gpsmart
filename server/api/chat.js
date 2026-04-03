@@ -225,8 +225,13 @@ module.exports = async function handler(req, res) {
                         { message: { role: 'assistant', content: answer } }
                     ]
                 });
+                return;
+            } catch (error) {
+                console.error('Optimización local falló:', error.message);
+            }
         }
 
+        // Fallback: Usar Groq para obtener recomendaciones
         const systemPrompt = `Eres un experto en logística para rutas en CABA/Buenos Aires. Recibe direcciones separadas por comas. Ordena las direcciones para minimizar la distancia total recorrida, evitando repeticiones y ciclos innecesarios. Proporciona:\n1. La lista ordenada de direcciones.\n2. Tiempos estimados entre puntos.\n3. Un enlace directo de Google Maps en el formato exacto: https://www.google.com/maps/dir/direccion1/direccion2/.../direccionN\nAsegúrate de que el enlace sea clickeable y funcional. Si hay direcciones muy cercanas (menos de 100m), sugiere fusionarlas. Siempre incluye el enlace al final de tu respuesta.`;
 
         const apiMessages = [{ role: 'system', content: systemPrompt }];
@@ -253,33 +258,4 @@ module.exports = async function handler(req, res) {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-}
-        }
-
-        const systemPrompt = `Eres un experto en logística para rutas en CABA/Buenos Aires. Recibe direcciones separadas por comas. Ordena las direcciones para minimizar la distancia total recorrida, evitando repeticiones y ciclos innecesarios. Proporciona:\n1. La lista ordenada de direcciones.\n2. Tiempos estimados entre puntos.\n3. Un enlace directo de Google Maps en el formato exacto: https://www.google.com/maps/dir/direccion1/direccion2/.../direccionN\nAsegúrate de que el enlace sea clickeable y funcional. Si hay direcciones muy cercanas (menos de 100m), sugiere fusionarlas. Siempre incluye el enlace al final de tu respuesta.`;
-
-        const apiMessages = [{ role: 'system', content: systemPrompt }];
-        apiMessages.push(...messages);
-
-        const response = await fetch(`${process.env.GROQ_BASE_URL}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: apiMessages
-            })
-        });
-
-        const data = await response.json();
-        if (data.error) {
-            res.status(400).json({ error: data.error.message });
-        } else {
-            res.status(200).json(data);
-        }
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-}
+};
