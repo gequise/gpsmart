@@ -89,10 +89,11 @@ function addMessage(role, content) {
     
     if (isRouteMessage) {
         messageDiv.classList.add('route-message');
-        // Remove URL from visible text
-        processedContent = processedContent.replace(/(https?:\/\/[^\s<]+)/g, '');
-        // Clean up extra spaces and line breaks left by URL removal
-        processedContent = processedContent.replace(/\s*<br>\s*Enlace para copiar o click[^<]*<\/a>\s*<br>/gi, '');
+        // Remove URL and "Enlace para copiar" text from visible text
+        processedContent = processedContent.replace(/Enlace para copiar o click \(Google Maps\):\s*<br>\s*/gi, '');
+        processedContent = processedContent.replace(/https:\/\/www\.google\.com\/maps\/dir[^\s<)]+/g, '');
+        // Clean up extra line breaks left by URL removal
+        processedContent = processedContent.replace(/<br>\s*<br>/g, '<br>');
         processedContent = processedContent.trim();
     } else {
         // Convert URLs to clickable links for non-route messages
@@ -103,26 +104,8 @@ function addMessage(role, content) {
 
     // Add action buttons for route messages
     if (isRouteMessage) {
-        // Buscar primero comgooglemaps://, luego https://
-        let linkMatch = content.match(/comgooglemaps:\/\/[^\s]+/);
-        let fallbackUrl = '';
-        
-        // Si encontramos comgooglemaps://, extraer también la URL web como fallback
-        if (linkMatch) {
-            // Extraer parámetros y convertir a URL web como fallback
-            const params = new URLSearchParams(linkMatch[0].split('?')[1]);
-            const origin = params.get('origin');
-            const destination = params.get('destination');
-            const waypoints = params.get('waypoints');
-            
-            if (origin && destination) {
-                let fallbackPath = [origin, waypoints ? waypoints.split('|') : [], destination].flat().join('/');
-                fallbackUrl = `https://www.google.com/maps/dir/${fallbackPath}`;
-            }
-        } else {
-            // Si no hay comgooglemaps://, buscar https://
-            linkMatch = content.match(/https?:\/\/[^\s]+/);
-        }
+        // Buscar URLs https://
+        const linkMatch = content.match(/https:\/\/www\.google\.com\/maps\/dir[^\s)]+/);
         
         if (linkMatch) {
             const buttonsContainer = document.createElement('div');
@@ -131,41 +114,18 @@ function addMessage(role, content) {
             // "Ir Ahora" button - primary action
             const goBtn = document.createElement('a');
             goBtn.href = linkMatch[0];
-            
-            // Si es comgooglemaps://, intentar ese primero, si no funciona usar fallback
-            if (linkMatch[0].startsWith('comgooglemaps://')) {
-                goBtn.onclick = (e) => {
-                    e.preventDefault();
-                    // Intentar abrir comgooglemaps://
-                    const timeout = setTimeout(() => {
-                        // Si no se abre en 1.5s, abrir fallback web
-                        if (fallbackUrl) {
-                            window.location.href = fallbackUrl;
-                        }
-                    }, 1500);
-                    
-                    window.location.href = linkMatch[0];
-                    
-                    // Cancelar el fallback si se abre correctamente
-                    window.addEventListener('beforeunload', () => clearTimeout(timeout), { once: true });
-                };
-            } else {
-                goBtn.target = '_blank';
-                goBtn.rel = 'noopener noreferrer';
-            }
-            
+            goBtn.target = '_blank';
+            goBtn.rel = 'noopener noreferrer';
             goBtn.className = 'btn-go-now';
             goBtn.innerHTML = '<i class="fas fa-navigation"></i> Ir Ahora';
             buttonsContainer.appendChild(goBtn);
             
-            // Copy link button - secondary action (copiar URL principal)
+            // Copy link button - secondary action
             const copyBtn = document.createElement('button');
             copyBtn.className = 'btn-copy-link';
             copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copiar enlace';
             copyBtn.addEventListener('click', () => {
-                // Si es comgooglemaps://, copiar fallback URL; si no, copiar directo
-                const urlToCopy = linkMatch[0].startsWith('comgooglemaps://') ? (fallbackUrl || linkMatch[0]) : linkMatch[0];
-                navigator.clipboard.writeText(urlToCopy).then(() => {
+                navigator.clipboard.writeText(linkMatch[0]).then(() => {
                     copyBtn.innerHTML = '<i class="fas fa-check"></i> Copiado';
                     setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copiar enlace'; }, 1600);
                 }).catch(() => {

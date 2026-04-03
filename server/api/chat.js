@@ -162,7 +162,8 @@ function buildGoogleMapsUrl(orderedAddresses) {
         return `https://www.google.com/maps/search/${encodeURIComponent(orderedAddresses[0])}`;
     }
     
-    // Generar ambas URLs: comgooglemaps:// para mobile app + web como fallback
+    // Usar formato oficial de Google Maps con parámetros API
+    // Esto abre directamente en modo de navegación (Drive)
     const origin = encodeURIComponent(orderedAddresses[0]);
     const destination = encodeURIComponent(orderedAddresses[orderedAddresses.length - 1]);
     
@@ -174,13 +175,8 @@ function buildGoogleMapsUrl(orderedAddresses) {
         waypointsParam = `&waypoints=${waypoints}`;
     }
     
-    // URL con esquema comgooglemaps:// (móvil) + fallback web
-    // El cliente detectara ambas
-    const mapsAppUrl = `comgooglemaps://dir/?origin=${origin}&destination=${destination}${waypointsParam}`;
-    const webUrl = `https://www.google.com/maps/dir/${orderedAddresses.map(a => encodeURIComponent(a)).join('/')}`;
-    
-    // Devolver primero comgooglemaps y luego web como fallback
-    return `${mapsAppUrl} (${webUrl})`;
+    // Usar formato que Google Maps reconoce y abre directamente en Drive
+    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam}`;
 }
 
 function buildOSMDirectionsUrl(orderedAddresses) {
