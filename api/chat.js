@@ -162,20 +162,10 @@ function buildGoogleMapsUrl(orderedAddresses) {
         return `https://www.google.com/maps/search/${encodeURIComponent(orderedAddresses[0])}`;
     }
     
-    // origin: primer punto (punto de partida)
-    // destination: último punto
-    // waypoints: todos los intermedios
-    const origin = encodeURIComponent(orderedAddresses[0]);
-    const destination = encodeURIComponent(orderedAddresses[orderedAddresses.length - 1]);
-    
-    let waypointsParam = '';
-    if (orderedAddresses.length > 2) {
-        // Incluir los puntos intermedios (sin el primero ni el último)
-        const waypoints = orderedAddresses.slice(1, -1).map(a => encodeURIComponent(a)).join('|');
-        waypointsParam = `&waypoints=${waypoints}`;
-    }
-    
-    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam}`;
+    // Usar formato que funciona mejor en mobile
+    // Format: https://www.google.com/maps/dir/origin/waypoint1/waypoint2/destination
+    const encodedAddresses = orderedAddresses.map(a => encodeURIComponent(a)).join('/');
+    return `https://www.google.com/maps/dir/${encodedAddresses}`;
 }
 
 function buildOSMDirectionsUrl(orderedAddresses) {
