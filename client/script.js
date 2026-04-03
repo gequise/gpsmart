@@ -84,33 +84,54 @@ function addMessage(role, content) {
         .replace(/>/g, '&gt;')
         .replace(/\n/g, '<br>');
 
-    // Convert URLs to clickable links
-    processedContent = processedContent.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-
     // If this message includes a final route link, format it as card
     const isRouteMessage = content.includes('✅ La ruta optimizada es:') || content.includes('Enlace Google Maps:');
+    
     if (isRouteMessage) {
         messageDiv.classList.add('route-message');
+        // Remove URL from visible text
+        processedContent = processedContent.replace(/(https?:\/\/[^\s<]+)/g, '');
+        // Clean up extra spaces and line breaks left by URL removal
+        processedContent = processedContent.replace(/\s*<br>\s*Enlace para copiar o click[^<]*<\/a>\s*<br>/gi, '');
+        processedContent = processedContent.trim();
+    } else {
+        // Convert URLs to clickable links for non-route messages
+        processedContent = processedContent.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
 
     messageDiv.innerHTML = processedContent;
 
-    // Add copy link button for route messages with link
+    // Add action buttons for route messages
     if (isRouteMessage) {
         const linkMatch = content.match(/https?:\/\/[^\s]+/);
         if (linkMatch) {
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.className = 'route-buttons';
+            
+            // "Ir Ahora" button - primary action
+            const goBtn = document.createElement('a');
+            goBtn.href = linkMatch[0];
+            goBtn.target = '_blank';
+            goBtn.rel = 'noopener noreferrer';
+            goBtn.className = 'btn-go-now';
+            goBtn.innerHTML = '<i class="fas fa-navigation"></i> Ir Ahora';
+            buttonsContainer.appendChild(goBtn);
+            
+            // Copy link button - secondary action
             const copyBtn = document.createElement('button');
-            copyBtn.className = 'copy-link-btn';
-            copyBtn.textContent = 'Copiar enlace';
+            copyBtn.className = 'btn-copy-link';
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copiar enlace';
             copyBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(linkMatch[0]).then(() => {
-                    copyBtn.textContent = 'Copiado ✓';
-                    setTimeout(() => { copyBtn.textContent = 'Copiar enlace'; }, 1600);
+                    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+                    setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copiar enlace'; }, 1600);
                 }).catch(() => {
-                    copyBtn.textContent = 'Error copiar';
+                    copyBtn.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
                 });
             });
-            messageDiv.appendChild(copyBtn);
+            buttonsContainer.appendChild(copyBtn);
+            
+            messageDiv.appendChild(buttonsContainer);
         }
     }
 

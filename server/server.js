@@ -191,38 +191,39 @@ app.post('/api/chat', async (req, res) => {
     const { messages, startingPoint = '', directions = [], startDirection = 'auto' } = req.body;
     const userMessage = Array.isArray(messages) ? messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '' : '';
 
-    // Combinar punto de partida con direcciones optimizables
+    // Direcciones a optimizar (SIN el punto de partida)
     const rawAddresses = Array.isArray(directions) && directions.length >= 1 ? directions : userMessage.split(',').map(a => a.trim()).filter(Boolean);
     
-    // Agregar el punto de partida al inicio si está especificado
-    let addressesToOptimize = rawAddresses;
-    if (startingPoint) {
-        addressesToOptimize = [startingPoint, ...rawAddresses];
-    }
-    
-    const shouldOptimizeLocally = addressesToOptimize.length >= 2;
+    const shouldOptimizeLocally = rawAddresses.length >= 1 && startingPoint;
 
     if (shouldOptimizeLocally) {
         try {
-            if (addressesToOptimize.length < 2) throw new Error('Se requieren al menos 2 direcciones para optimizar.');
+            if (rawAddresses.length < 1) throw new Error('Se requieren al menos 1 dirección intermedia para optimizar.');
 
-            const { matrix, geocoded } = await getDistanceMatrixFromAddresses(addressesToOptimize);
-            // Siempre comenzar desde el punto de partida (índice 0)
-            const startIndex = 0;
-            const orderIndex = solveTspNearestNeighbor(matrix, startIndex);
-            let orderedAddresses = orderIndex.map(i => addressesToOptimize[i]);
+            // Crear matriz de distancias solo para las direcciones a optimizar
+            const { matrix, geocoded } = await getDistanceMatrixFromAddresses(rawAddresses);
             
-            // Asegurarse que el punto de partida sea el primero
-            if (startingPoint && orderedAddresses[0] !== startingPoint) {
-                orderedAddresses = orderedAddresses.filter(a => a !== startingPoint);
-                orderedAddresses.unshift(startingPoint);
+            // Optimizar solo las direcciones intermedias
+            if (rawAddresses.length > 1) {
+                const orderIndex = solveTspNearestNeighbor(matrix, 0);
+                var optimizedDirections = orderIndex.map(i => rawAddresses[i]);
+            } else {
+                var optimizedDirections = rawAddresses;
             }
+            
+            // Construir la ruta final: Punto de Partida + Direcciones Optimizadas
+            const finalRoute = [startingPoint, ...optimizedDirections];
 
             const provider = process.env.GOOGLE_MAPS_API_KEY ? 'Google Distance Matrix' : 'OSM/Haversine (sin clave Google)';
             const reportNote = `Optimización con ${provider}.`;
 
-            const routeLink = buildGoogleMapsUrl(orderedAddresses);
-            const answer = `✅ La ruta optimizada es:\n${orderedAddresses.map((addr, i) => `${i + 1}. ${addr}`).join('\n')}\n\n${reportNote}\n\nEnlace para copiar o click (Google Maps):\n${routeLink}`;
+            const routeLink = buildGoogleMapsUrl(finalRoute);
+            const routeList = finalRoute.map((addr, i) => {
+                if (i === 0) return `${i + 1}. ${addr} (PUNTO DE PARTIDA)`;
+                return `${i + 1}. ${addr}`;
+            }).join('\n');
+            
+            const answer = `✅ La ruta optimizada es:\n${routeList}\n\n${reportNote}\n\nEnlace para copiar o click (Google Maps):\n${routeLink}`;
 
             res.json({
                 choices: [

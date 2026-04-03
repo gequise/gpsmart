@@ -186,44 +186,74 @@ module.exports = async function handler(req, res) {
         const { messages, startingPoint = '', directions = [], startDirection = 'auto' } = req.body;
         const userMessage = Array.isArray(messages) ? messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '' : '';
 
+        // Direcciones a optimizar (SIN el punto de partida)
         const rawAddresses = Array.isArray(directions) && directions.length >= 1 ? directions : userMessage.split(',').map(a => a.trim()).filter(Boolean);
-        let addressesToOptimize = rawAddresses;
-        if (startingPoint) {
-            addressesToOptimize = [startingPoint, ...rawAddresses];
-        }
         
-        const shouldOptimizeLocally = addressesToOptimize.length >= 2;
+        const shouldOptimizeLocally = rawAddresses.length >= 1 && startingPoint;
 
         if (shouldOptimizeLocally) {
             try {
-                if (addressesToOptimize.length < 2) throw new Error('Se requieren al menos 1 dirección intermedia para optimizar.');
+                if (rawAddresses.length < 1) throw new Error('Se requieren al menos 1 dirección intermedia para optimizar.');
 
-                const { matrix, geocoded } = await getDistanceMatrixFromAddresses(addressesToOptimize);
-                const startIndex = 0;
-                const orderIndex = solveTspNearestNeighbor(matrix, startIndex);
-                let orderedAddresses = orderIndex.map(i => addressesToOptimize[i]);
+                // Crear matriz de distancias solo para las direcciones a optimizar
+                const { matrix, geocoded } = await getDistanceMatrixFromAddresses(rawAddresses);
                 
-                // Asegurarse que el punto de partida sea el primero
-                if (startingPoint && orderedAddresses[0] !== startingPoint) {
-                    orderedAddresses = orderedAddresses.filter(a => a !== startingPoint);
-                    orderedAddresses.unshift(startingPoint);
+                // Optimizar solo las direcciones intermedias
+                if (rawAddresses.length > 1) {
+                    const orderIndex = solveTspNearestNeighbor(matrix, 0);
+                    var optimizedDirections = orderIndex.map(i => rawAddresses[i]);
+                } else {
+                    var optimizedDirections = rawAddresses;
                 }
+                
+                // Construir la ruta final: Punto de Partida + Direcciones Optimizadas
+                const finalRoute = [startingPoint, ...optimizedDirections];
 
                 const provider = process.env.GOOGLE_MAPS_API_KEY ? 'Google Distance Matrix' : 'OSM/Haversine (sin clave Google)';
-                const reportNote = `Optimización con ${provider}, con inicio desde ${startDirection}.`;
+                const reportNote = `Optimización con ${provider}.`;
 
-                const routeLink = buildGoogleMapsUrl(orderedAddresses);
-                const answer = `✅ La ruta optimizada es:\n${orderedAddresses.map((addr, i) => `${i + 1}. ${addr}`).join('\n')}\n\n${reportNote}\n\nEnlace para copiar o click (Google Maps):\n${routeLink}`;
+                const routeLink = buildGoogleMapsUrl(finalRoute);
+                const routeList = finalRoute.map((addr, i) => {
+                    if (i === 0) return `${i + 1}. ${addr} (PUNTO DE PARTIDA)`;
+                    return `${i + 1}. ${addr}`;
+                }).join('\n');
+                
+                const answer = `✅ La ruta optimizada es:\n${routeList}\n\n${reportNote}\n\nEnlace para copiar o click (Google Maps):\n${routeLink}`;
 
                 res.status(200).json({
                     choices: [
                         { message: { role: 'assistant', content: answer } }
                     ]
                 });
-                return;
-            } catch (error) {
-                console.error('Optimización local falló:', error.message);
-            }
+        }
+
+        const systemPrompt = `Eres un experto en logística para rutas en CABA/Buenos Aires. Recibe direcciones separadas por comas. Ordena las direcciones para minimizar la distancia total recorrida, evitando repeticiones y ciclos innecesarios. Proporciona:\n1. La lista ordenada de direcciones.\n2. Tiempos estimados entre puntos.\n3. Un enlace directo de Google Maps en el formato exacto: https://www.google.com/maps/dir/direccion1/direccion2/.../direccionN\nAsegúrate de que el enlace sea clickeable y funcional. Si hay direcciones muy cercanas (menos de 100m), sugiere fusionarlas. Siempre incluye el enlace al final de tu respuesta.`;
+
+        const apiMessages = [{ role: 'system', content: systemPrompt }];
+        apiMessages.push(...messages);
+
+        const response = await fetch(`${process.env.GROQ_BASE_URL}/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: apiMessages
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            res.status(400).json({ error: data.error.message });
+        } else {
+            res.status(200).json(data);
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
         }
 
         const systemPrompt = `Eres un experto en logística para rutas en CABA/Buenos Aires. Recibe direcciones separadas por comas. Ordena las direcciones para minimizar la distancia total recorrida, evitando repeticiones y ciclos innecesarios. Proporciona:\n1. La lista ordenada de direcciones.\n2. Tiempos estimados entre puntos.\n3. Un enlace directo de Google Maps en el formato exacto: https://www.google.com/maps/dir/direccion1/direccion2/.../direccionN\nAsegúrate de que el enlace sea clickeable y funcional. Si hay direcciones muy cercanas (menos de 100m), sugiere fusionarlas. Siempre incluye el enlace al final de tu respuesta.`;
