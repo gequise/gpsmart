@@ -1,16 +1,25 @@
-require('dotenv').config();
+require('dotenv').config({ path: '../config/.env' });
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname));
+
+// Servir archivos estáticos desde la carpeta client
+const clientPath = path.join(__dirname, '../client');
+app.use(express.static(clientPath));
 
 app.get('/', (req, res) => {
-    res.sendFile(require('path').join(__dirname, 'index.html'));
+    res.sendFile(path.join(clientPath, 'index.html'));
+});
+
+// Fallback para SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(clientPath, 'index.html'));
 });
 
 async function geocodeGoogle(address) {
@@ -133,7 +142,6 @@ function pickStartIndexByDirection(geocoded, direction = 'auto') {
     let bestIndex = 0;
 
     if (dir === 'sur') {
-        // sur = latitud mínima
         let minLat = Infinity;
         geocoded.forEach((p, i) => {
             if (p.lat < minLat) {
@@ -180,16 +188,16 @@ function buildOSMDirectionsUrl(orderedAddresses) {
 }
 
 app.post('/api/chat', async (req, res) => {
-    const { messages, destinationPoint = '', directions = [], startDirection = 'auto' } = req.body;
+    const { messages, startingPoint = '', directions = [], startDirection = 'auto' } = req.body;
     const userMessage = Array.isArray(messages) ? messages.filter(m => m.role === 'user').slice(-1)[0]?.content || '' : '';
 
-    // Combinar direcciones intermedias con el destino
+    // Combinar punto de partida con direcciones optimizables
     const rawAddresses = Array.isArray(directions) && directions.length >= 1 ? directions : userMessage.split(',').map(a => a.trim()).filter(Boolean);
     
-    // Agregar el destino al final si está especificado
+    // Agregar el punto de partida al inicio si está especificado
     let addressesToOptimize = rawAddresses;
-    if (destinationPoint) {
-        addressesToOptimize = [...rawAddresses, destinationPoint];
+    if (startingPoint) {
+        addressesToOptimize = [startingPoint, ...rawAddresses];
     }
     
     const shouldOptimizeLocally = addressesToOptimize.length >= 2;
@@ -199,14 +207,15 @@ app.post('/api/chat', async (req, res) => {
             if (addressesToOptimize.length < 2) throw new Error('Se requieren al menos 2 direcciones para optimizar.');
 
             const { matrix, geocoded } = await getDistanceMatrixFromAddresses(addressesToOptimize);
-            const startIndex = pickStartIndexByDirection(geocoded, startDirection);
+            // Siempre comenzar desde el punto de partida (índice 0)
+            const startIndex = 0;
             const orderIndex = solveTspNearestNeighbor(matrix, startIndex);
             let orderedAddresses = orderIndex.map(i => addressesToOptimize[i]);
             
-            // Si hay destino, asegurarse que sea el último punto
-            if (destinationPoint && orderedAddresses[orderedAddresses.length - 1] !== destinationPoint) {
-                orderedAddresses = orderedAddresses.filter(a => a !== destinationPoint);
-                orderedAddresses.push(destinationPoint);
+            // Asegurarse que el punto de partida sea el primero
+            if (startingPoint && orderedAddresses[0] !== startingPoint) {
+                orderedAddresses = orderedAddresses.filter(a => a !== startingPoint);
+                orderedAddresses.unshift(startingPoint);
             }
 
             const provider = process.env.GOOGLE_MAPS_API_KEY ? 'Google Distance Matrix' : 'OSM/Haversine (sin clave Google)';
@@ -223,7 +232,6 @@ app.post('/api/chat', async (req, res) => {
             return;
         } catch (error) {
             console.error('Optimización local falló:', error.message);
-            // continuar con LLM como fallback
         }
     }
 

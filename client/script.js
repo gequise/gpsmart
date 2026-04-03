@@ -23,28 +23,28 @@ function addDirectionInput() {
 }
 
 function sendMessage() {
-    const destinationPoint = document.getElementById('destinationPoint').value.trim();
+    const startingPoint = document.getElementById('startingPoint').value.trim();
     const directionInputs = directionsContainer.querySelectorAll('.directionInput');
     const directions = Array.from(directionInputs).map(input => input.value.trim()).filter(dir => dir !== '');
 
-    if (!destinationPoint) {
-        alert('Ingresa el punto de destino.');
+    if (!startingPoint) {
+        alert('Ingresa el punto de partida.');
         return;
     }
 
-    if (directions.length < 2) {
-        alert('Ingresa al menos 2 direcciones.');
+    if (directions.length < 1) {
+        alert('Ingresa al menos 1 dirección intermedia.');
         return;
     }
 
-    const userMessage = `Destino: ${destinationPoint} | Direcciones: ${directions.join(', ')}`;
+    const userMessage = `Partida: ${startingPoint} | Direcciones a visitar: ${directions.join(', ')}`;
 
     // Add user message
     addMessage('user', userMessage);
     messages.push({ role: 'user', content: userMessage });
 
     // Clear inputs
-    document.getElementById('destinationPoint').value = '';
+    document.getElementById('startingPoint').value = '';
     directionInputs.forEach(input => input.value = '');
 
     // Call local server
@@ -55,7 +55,7 @@ function sendMessage() {
         },
         body: JSON.stringify({
             messages: messages,
-            destinationPoint: destinationPoint,
+            startingPoint: startingPoint,
             directions: directions
         })
     })

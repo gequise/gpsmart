@@ -1,10 +1,10 @@
 {
-  "name": "chat-simple-gpt",
+  "name": "maps-poc",
   "version": "1.0.0",
-  "description": "Un optimizador de rutas logísticas con Groq, listo para Vercel",
-  "main": "server.js",
+  "description": "Optimizador de rutas logísticas con Groq y Google Maps",
+  "main": "server/server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node server/server.js",
     "dev": "vercel dev",
     "build": "npm install"
   },
